@@ -55,7 +55,7 @@ npm run deploy:local
 ### In a Node.js project:
 
 ```typescript
-import { RoyaleProtocol } from "@royale-protocol/sdk";
+import { RoyaleProtocol } from "@devroyale/protocol";
 import { BrowserProvider } from "ethers";
 
 const protocol = new RoyaleProtocol(

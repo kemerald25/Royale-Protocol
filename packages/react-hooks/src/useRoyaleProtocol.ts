@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { BrowserProvider, Signer } from "ethers";
-import { RoyaleProtocol } from "@royale-protocol/sdk";
+import { RoyaleProtocol } from "@devroyale/protocol";
 
 export interface UseRoyaleProtocolOptions {
   contractAddress: string;

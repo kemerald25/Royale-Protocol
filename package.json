@@ -14,6 +14,7 @@
     "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
     "deploy:base": "hardhat run scripts/deploy.ts --network base",
     "test:flow": "hardhat run scripts/test-flow.ts --network localhost",
+    "publish:sdk": "ts-node scripts/publish-sdk.ts",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "build": "npm run build --workspaces --if-present",

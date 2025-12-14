@@ -5,13 +5,13 @@ TypeScript SDK for Royale Protocol - Decentralized Timelock Encryption Infrastru
 ## Installation
 
 ```bash
-npm install @royale-protocol/sdk ethers
+npm install @devroyale/protocol ethers
 ```
 
 ## Usage
 
 ```typescript
-import { RoyaleProtocol } from "@royale-protocol/sdk";
+import { RoyaleProtocol } from "@devroyale/protocol";
 import { BrowserProvider } from "ethers";
 
 // Initialize

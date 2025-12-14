@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { RoyaleProtocol } from "@royale-protocol/sdk";
-import { Vault, VaultStatusInfo } from "@royale-protocol/sdk";
+import { RoyaleProtocol } from "@devroyale/protocol";
+import { Vault, VaultStatusInfo } from "@devroyale/protocol";
 
 export interface UseVaultOptions {
   protocol: RoyaleProtocol | null;

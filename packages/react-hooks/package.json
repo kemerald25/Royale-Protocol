@@ -1,5 +1,5 @@
 {
-  "name": "@royale-protocol/react-hooks",
+  "name": "@devroyale/react-hooks",
   "version": "1.0.0",
   "description": "React hooks for Royale Protocol",
   "main": "dist/index.js",
@@ -9,7 +9,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@royale-protocol/sdk": "*",
+    "@devroyale/protocol": "*",
     "react": "^18.2.0",
     "ethers": "^6.9.0"
   },

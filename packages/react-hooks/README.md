@@ -5,13 +5,13 @@ React hooks for Royale Protocol integration
 ## Installation
 
 ```bash
-npm install @royale-protocol/react-hooks @royale-protocol/sdk react ethers
+npm install @devroyale/react-hooks @devroyale/protocol react ethers
 ```
 
 ## Usage
 
 ```tsx
-import { useRoyaleProtocol, useVault } from "@royale-protocol/react-hooks";
+import { useRoyaleProtocol, useVault } from "@devroyale/react-hooks";
 
 function App() {
   const { protocol, isConnected, connect } = useRoyaleProtocol({

@@ -1,13 +1,37 @@
 {
-  "name": "@royale-protocol/sdk",
+  "name": "@devroyale/protocol",
   "version": "1.0.0",
-  "description": "TypeScript SDK for Royale Protocol",
+  "description": "TypeScript SDK for Royale Protocol - Decentralized Timelock Encryption Infrastructure for Web3",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "web3",
+    "blockchain",
+    "ethereum",
+    "timelock",
+    "encryption",
+    "inheritance",
+    "dead-man-switch",
+    "shamir-secret-sharing",
+    "ipfs",
+    "base"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/Royale-Protocol.git",
+    "directory": "packages/sdk"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "ethers": "^6.9.0",
@@ -26,4 +50,3 @@
     "ethers": "^6.0.0"
   }
 }
-

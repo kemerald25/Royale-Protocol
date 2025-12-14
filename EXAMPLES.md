@@ -26,7 +26,7 @@ npm test
 ### Basic Setup
 
 ```typescript
-import { RoyaleProtocol } from "@royale-protocol/sdk";
+import { RoyaleProtocol } from "@devroyale/protocol";
 import { BrowserProvider } from "ethers";
 
 // Initialize SDK
