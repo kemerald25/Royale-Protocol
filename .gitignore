@@ -20,6 +20,7 @@ build/
 # Deployment files (keep structure, ignore content)
 deployment.json
 deployments/
+test-shares.json
 
 # IDE
 .vscode/

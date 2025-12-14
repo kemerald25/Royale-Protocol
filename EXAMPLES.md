@@ -33,7 +33,7 @@ import { BrowserProvider } from "ethers";
 const protocol = new RoyaleProtocol(
   "0x...", // Contract address
   "https://sepolia.base.org", // RPC URL
-  "https://ipfs.io/ipfs/" // IPFS gateway (optional)
+  "https://red-famous-peafowl-148.mypinata.cloud/ipfs/" // IPFS gateway (optional)
 );
 
 // Initialize IPFS

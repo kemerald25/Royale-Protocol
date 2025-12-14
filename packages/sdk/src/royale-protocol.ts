@@ -73,9 +73,15 @@ export class RoyaleProtocol {
   /**
    * Initialize IPFS client
    * @param ipfsUrl IPFS node URL (optional)
+   * @param pinataApiKey Optional Pinata API key for direct uploads
+   * @param pinataSecretKey Optional Pinata secret key for direct uploads
    */
-  async initializeIPFS(ipfsUrl?: string): Promise<void> {
-    await this.ipfsClient.initialize(ipfsUrl);
+  async initializeIPFS(
+    ipfsUrl?: string,
+    pinataApiKey?: string,
+    pinataSecretKey?: string
+  ): Promise<void> {
+    await this.ipfsClient.initialize(ipfsUrl, pinataApiKey, pinataSecretKey);
   }
 
   /**
@@ -183,11 +189,30 @@ export class RoyaleProtocol {
       throw new Error("Signer not connected");
     }
 
-    // Claim from contract
-    const [ipfsCID, encryptedTimelockKey] = await this.contract.claimInheritance(vaultId);
+    // First, get the return values using staticCall
+    const staticResult = await this.contract.claimInheritance.staticCall(vaultId);
+    let ipfsCID: string;
+    let encryptedTimelockKey: string;
+    
+    if (Array.isArray(staticResult)) {
+      ipfsCID = staticResult[0];
+      encryptedTimelockKey = staticResult[1];
+    } else {
+      ipfsCID = (staticResult as any).ipfsCID || (staticResult as any)[0];
+      encryptedTimelockKey = (staticResult as any).encryptedTimelockKey || (staticResult as any)[1];
+    }
+
+    if (!ipfsCID || !encryptedTimelockKey) {
+      throw new Error(`Failed to get claim data from static call`);
+    }
+
+    // Now execute the actual transaction
+    const tx = await this.contract.claimInheritance(vaultId);
+    await tx.wait();
 
     // Decrypt timelock share (in production, use beneficiary's private key)
-    const timelockShare = encryptedTimelockKey; // Placeholder - should decrypt
+    // For now, the encryptedTimelockKey is the share itself (not encrypted in this implementation)
+    const timelockShare = encryptedTimelockKey;
 
     // Combine shares to get encryption key
     const encryptionKey = combineShares([beneficiaryShare, timelockShare]);
