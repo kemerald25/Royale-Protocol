@@ -36,25 +36,9 @@ export class IPFSClient {
     this.pinataApiKey = pinataApiKey;
     this.pinataSecretKey = pinataSecretKey;
 
-    // Only try to use ipfs-http-client in Node.js environments (not in browser/Next.js)
-    const isNode = typeof window === "undefined" && typeof process !== "undefined" && process.versions?.node;
-    
-    if (isNode && ipfsUrl) {
-      try {
-        // Dynamic import only in Node.js - never at top level
-        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-        const ipfsClientModule = require("ipfs-http-client") as IPFSClientModule;
-        if (ipfsClientModule) {
-          const { create } = ipfsClientModule;
-          this.client = create({
-            url: ipfsUrl || "https://ipfs.infura.io:5001/api/v0",
-          });
-          return;
-        }
-      } catch (error) {
-        // Silently fail - we'll use Pinata or gateway fallback
-      }
-    }
+    // Skip ipfs-http-client entirely to avoid webpack bundling issues
+    // Pinata API works in both browser and Node.js, so we use that instead
+    // ipfs-http-client is ESM-only and breaks webpack/Next.js bundlers
 
     // Default: Use Pinata API if credentials provided, otherwise gateway-only mode
     // Gateway-only mode works for reads, uploads will use local fallback
@@ -82,17 +66,8 @@ export class IPFSClient {
       }
     }
 
-    // Priority 2: Try to use IPFS client if available (Node.js only)
-    if (this.client && typeof this.client.add === "function") {
-      try {
-        const result = await this.client.add(dataBuffer);
-        const cid = result.cid.toString();
-        this.localStorage.set(cid, dataString);
-        return cid;
-      } catch (error) {
-        console.warn("IPFS client upload failed, falling back:", error);
-      }
-    }
+    // Note: ipfs-http-client removed to avoid webpack bundling issues
+    // Use Pinata API for production uploads
 
     // Priority 3: Fallback - generate a deterministic CID and store locally
     // This allows testing without IPFS infrastructure
