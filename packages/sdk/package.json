@@ -1,6 +1,6 @@
 {
   "name": "@devroyale/protocol",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TypeScript SDK for Royale Protocol - Decentralized Timelock Encryption Infrastructure for Web3",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,9 +36,11 @@
   "dependencies": {
     "ethers": "^6.9.0",
     "secrets.js-grempe": "^2.0.0",
-    "ipfs-http-client": "^60.0.1",
     "buffer": "^6.0.3",
     "form-data": "^4.0.0"
+  },
+  "optionalDependencies": {
+    "ipfs-http-client": "^60.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

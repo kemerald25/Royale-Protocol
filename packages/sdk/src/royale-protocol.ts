@@ -59,6 +59,10 @@ export class RoyaleProtocol {
     }
     this.contract = new Contract(contractAddress, ROYALE_PROTOCOL_ABI, this.provider);
     this.ipfsClient = new IPFSClient(ipfsGatewayUrl);
+    // Auto-initialize IPFS client (works without config)
+    this.ipfsClient.initialize().catch(() => {
+      // Silently fail - IPFS will use fallback mode
+    });
   }
 
   /**

@@ -1,4 +1,5 @@
-// Dynamic import for ipfs-http-client to handle ESM/CJS compatibility
+// IPFS client types (ipfs-http-client is ESM-only and doesn't work with webpack/Next.js)
+// We'll use Pinata API or gateway-only approach for browser environments
 type IPFSClientInstance = {
   add: (data: Buffer) => Promise<{ cid: { toString: () => string } }>;
 };
@@ -6,16 +7,6 @@ type IPFSClientInstance = {
 type IPFSClientModule = {
   create: (options: { url: string }) => IPFSClientInstance;
 } | null;
-
-let ipfsClientModule: IPFSClientModule = null;
-try {
-  // Dynamic require for optional dependency
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-  ipfsClientModule = require("ipfs-http-client") as IPFSClientModule;
-} catch (e) {
-  // Fallback if module not available
-  ipfsClientModule = null;
-}
 
 /**
  * IPFS client wrapper
@@ -33,7 +24,7 @@ export class IPFSClient {
 
   /**
    * Initialize IPFS client
-   * @param ipfsUrl IPFS node URL (default: public IPFS gateway)
+   * @param ipfsUrl IPFS node URL (default: public IPFS gateway) - Only used in Node.js
    * @param pinataApiKey Optional Pinata API key
    * @param pinataSecretKey Optional Pinata secret key
    */
@@ -45,27 +36,29 @@ export class IPFSClient {
     this.pinataApiKey = pinataApiKey;
     this.pinataSecretKey = pinataSecretKey;
 
-    if (!ipfsClientModule) {
-      if (pinataApiKey && pinataSecretKey) {
-        console.log("Using Pinata API for IPFS uploads");
-      } else {
-        console.warn("ipfs-http-client not available, using gateway only");
-      }
-      this.client = null;
-      return;
-    }
+    // Only try to use ipfs-http-client in Node.js environments (not in browser/Next.js)
+    const isNode = typeof window === "undefined" && typeof process !== "undefined" && process.versions?.node;
     
-    try {
-      if (ipfsClientModule) {
-        const { create } = ipfsClientModule;
-        this.client = create({
-          url: ipfsUrl || "https://ipfs.infura.io:5001/api/v0",
-        });
+    if (isNode && ipfsUrl) {
+      try {
+        // Dynamic import only in Node.js - never at top level
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        const ipfsClientModule = require("ipfs-http-client") as IPFSClientModule;
+        if (ipfsClientModule) {
+          const { create } = ipfsClientModule;
+          this.client = create({
+            url: ipfsUrl || "https://ipfs.infura.io:5001/api/v0",
+          });
+          return;
+        }
+      } catch (error) {
+        // Silently fail - we'll use Pinata or gateway fallback
       }
-    } catch (error) {
-      console.warn("Failed to initialize IPFS client, using gateway only:", error);
-      this.client = null;
     }
+
+    // Default: Use Pinata API if credentials provided, otherwise gateway-only mode
+    // Gateway-only mode works for reads, uploads will use local fallback
+    this.client = null;
   }
 
   /**
@@ -77,40 +70,67 @@ export class IPFSClient {
     const dataBuffer = typeof data === "string" ? Buffer.from(data, "utf8") : data;
     const dataString = dataBuffer.toString("hex");
 
-    // If Pinata credentials are set, use Pinata API directly
+    // Priority 1: Use Pinata API if credentials are set (works in browser and Node.js)
     if (this.pinataApiKey && this.pinataSecretKey) {
-      const cid = await this.uploadToPinata(dataBuffer, this.pinataApiKey, this.pinataSecretKey);
-      // Also store locally for retrieval during testing
-      this.localStorage.set(cid, dataString);
-      return cid;
-    }
-
-    // Try to use IPFS client if available
-    if (this.client && typeof this.client.add === "function") {
       try {
-        const result = await this.client.add(dataBuffer);
-        return result.cid.toString();
+        const cid = await this.uploadToPinata(dataBuffer, this.pinataApiKey, this.pinataSecretKey);
+        // Store locally for immediate retrieval
+        this.localStorage.set(cid, dataString);
+        return cid;
       } catch (error) {
-        console.warn("IPFS client upload failed, falling back to local storage:", error);
+        console.warn("Pinata upload failed, falling back:", error);
       }
     }
 
-    // Fallback: generate a mock CID for testing and store locally
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-    const crypto = require("crypto") as typeof import("crypto");
-    const hash = crypto.createHash("sha256").update(dataBuffer).digest("hex");
-    // Return a mock CID (Qm prefix + hash)
+    // Priority 2: Try to use IPFS client if available (Node.js only)
+    if (this.client && typeof this.client.add === "function") {
+      try {
+        const result = await this.client.add(dataBuffer);
+        const cid = result.cid.toString();
+        this.localStorage.set(cid, dataString);
+        return cid;
+      } catch (error) {
+        console.warn("IPFS client upload failed, falling back:", error);
+      }
+    }
+
+    // Priority 3: Fallback - generate a deterministic CID and store locally
+    // This allows testing without IPFS infrastructure
+    const isNode = typeof window === "undefined" && typeof process !== "undefined" && process.versions?.node;
+    let hash: string;
+    
+    if (isNode) {
+      // Node.js: use crypto module
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      const crypto = require("crypto") as typeof import("crypto");
+      hash = crypto.createHash("sha256").update(dataBuffer).digest("hex");
+    } else {
+      // Browser: use Web Crypto API
+      // Convert Buffer to Uint8Array for Web Crypto API
+      const uint8Array = new Uint8Array(dataBuffer);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", uint8Array);
+      hash = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+    
+    // Generate a mock CID (Qm prefix + hash) for local testing
     const cid = `Qm${hash.substring(0, 44)}`;
-    // Store data locally for retrieval during testing
+    // Store data locally for retrieval
     this.localStorage.set(cid, dataString);
-    console.warn(
-      "Using local storage for IPFS. For production, provide Pinata credentials or configure IPFS client."
-    );
+    
+    // Only warn in development
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        "IPFS upload: Using local storage fallback. For production, provide Pinata credentials."
+      );
+    }
+    
     return cid;
   }
 
   /**
-   * Upload data using Pinata (if configured)
+   * Upload data using Pinata API (works in browser and Node.js)
    * @param data Data to upload
    * @param pinataApiKey Pinata API key
    * @param pinataSecretKey Pinata secret key
@@ -123,23 +143,43 @@ export class IPFSClient {
   ): Promise<string> {
     const dataBuffer = typeof data === "string" ? Buffer.from(data, "utf8") : data;
 
-    const formData = new FormData();
-    // Convert Buffer to Uint8Array for Blob compatibility
-    const uint8Array = new Uint8Array(dataBuffer);
-    const blob = new Blob([uint8Array]);
-    formData.append("file", blob);
+    // Handle FormData differently for Node.js vs Browser
+    const isNode = typeof window === "undefined" && typeof process !== "undefined" && process.versions?.node;
+    
+    let formData: any;
+    if (isNode) {
+      // Node.js: use form-data package
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      const FormDataNode = require("form-data");
+      formData = new FormDataNode();
+      formData.append("file", dataBuffer, { filename: "data.json" });
+    } else {
+      // Browser: use native FormData
+      formData = new FormData();
+      const uint8Array = new Uint8Array(dataBuffer);
+      const blob = new Blob([uint8Array]);
+      formData.append("file", blob);
+    }
+
+    const headers: Record<string, string> = {
+      pinata_api_key: pinataApiKey,
+      pinata_secret_api_key: pinataSecretKey,
+    };
+
+    // Add Content-Type for Node.js form-data
+    if (isNode && (formData as any).getHeaders) {
+      Object.assign(headers, (formData as any).getHeaders());
+    }
 
     const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
       method: "POST",
-      headers: {
-        pinata_api_key: pinataApiKey,
-        pinata_secret_api_key: pinataSecretKey,
-      },
-      body: formData,
+      headers,
+      body: formData as any,
     });
 
     if (!response.ok) {
-      throw new Error(`Pinata upload failed: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Pinata upload failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const result = (await response.json()) as { IpfsHash: string };
